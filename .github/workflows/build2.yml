@@ -1,0 +1,39 @@
+name: build-apk2
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: SDK
+        run: |
+          SDK="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDK" --licenses >/dev/null 2>&1 || true
+          "$SDK" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          sed -i 's/compileSdk = "37"/compileSdk = "35"/; s/targetSdk = "37"/targetSdk = "35"/; s/buildTools = "37.0.0"/buildTools = "35.0.0"/' gradle/libs.versions.toml
+      - name: Keystore
+        run: keytool -genkeypair -keystore release.jks -alias fongmi -keyalg RSA -keysize 2048 -validity 10000 -storepass fongmi123 -keypass fongmi123 -dname "CN=FongMi"
+      - name: Props
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "storeFile=../release.jks" >> local.properties
+          echo "keyAlias=fongmi" >> local.properties
+          echo "storePassword=fongmi123" >> local.properties
+          echo "keyPassword=fongmi123" >> local.properties
+      - name: Trim
+        run: sed -i "/include ':chaquo'/d;/include ':nodejs'/d;/include ':quickjs'/d;/include ':thunder'/d" settings.gradle
+      - name: Build
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleMobileArm64-v8aRelease --no-daemon --stacktrace
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: apk
+          path: app/build/outputs/apk/**/*.apk
