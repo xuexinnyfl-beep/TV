@@ -15,11 +15,9 @@ jobs:
         run: |
           SDK="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDK" --licenses >/dev/null 2>&1 || true
-          echo "::notice::have=$(ls $ANDROID_HOME/platforms | tr '\n' ' ')"
-          "$SDK" --channel=3 "platforms;android-37" "build-tools;37.0.0" "platform-tools" || {
-            echo "::error::canary sdk 37 unavailable"
-            exit 1
-          }
+          "$SDK" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          sed -i 's/compileSdk = "37"/compileSdk = "35"/; s/targetSdk = "37"/targetSdk = "35"/; s/buildTools = "37.0.0"/buildTools = "35.0.0"/' gradle/libs.versions.toml
+          grep -E "compileSdk|targetSdk|buildTools" gradle/libs.versions.toml
       - name: Keystore
         run: keytool -genkeypair -keystore release.jks -alias fongmi -keyalg RSA -keysize 2048 -validity 10000 -storepass fongmi123 -keypass fongmi123 -dname "CN=FongMi"
       - name: Props
