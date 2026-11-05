@@ -13,16 +13,12 @@ jobs:
           java-version: '21'
       - name: SDK
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME/cmdline-tools" || true
-          ls "$ANDROID_HOME/platforms" || true
           SDK="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          [ -x "$SDK" ] || SDK=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -1)
-          echo "SDK=$SDK"
           yes | "$SDK" --licenses >/dev/null 2>&1 || true
-          "$SDK" --list 2>/dev/null | grep -oE "platforms;android-[0-9]+" | sort -u | tail -6
-          "$SDK" "platforms;android-37" "build-tools;37.0.0" "platform-tools" || \
-          "$SDK" --channel=3 "platforms;android-37" "build-tools;37.0.0" "platform-tools"
+          echo "platforms: $(ls $ANDROID_HOME/platforms | tr '\n' ' ')"
+          echo "build-tools: $(ls $ANDROID_HOME/build-tools | tr '\n' ' ')"
+          "$SDK" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          sed -i 's/compileSdk = "37"/compileSdk = "36"/; s/targetSdk = "37"/targetSdk = "36"/; s/buildTools = "37.0.0"/buildTools = "36.0.0"/' gradle/libs.versions.toml
       - name: Keystore
         run: keytool -genkeypair -keystore release.jks -alias fongmi -keyalg RSA -keysize 2048 -validity 10000 -storepass fongmi123 -keypass fongmi123 -dname "CN=FongMi"
       - name: Props
